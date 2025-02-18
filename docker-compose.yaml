@@ -8,9 +8,21 @@ services:
     environment:
       MONGO_INITDB_DATABASE: bookex
     ports:
-      - "27017:27017"
+      - "${MONGODB_EXPOSE}:${MONGODB_PORT}"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - book_exchange_network
+
+  bot:
+    build: .
+    container_name: book_exchange_bot
+    restart: unless-stopped
+    environment:
+      - MONGODB_URI=${MONGODB_URI}
+      - BOT_TOKEN=${BOT_TOKEN}
+    depends_on:
+      - mongodb
     networks:
       - book_exchange_network
 
