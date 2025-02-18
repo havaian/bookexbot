@@ -5,10 +5,11 @@ services:
     image: mongo:latest
     container_name: book_exchange_mongodb
     restart: unless-stopped
+    command: mongod --port ${MONGODB_PORT}
     environment:
-      MONGO_INITDB_DATABASE: bookex
+      MONGO_INITDB_DATABASE: ${MONGODB_DBNAME}
     ports:
-      - "${MONGODB_EXPOSE}:${MONGODB_PORT}"
+      - "127.0.0.1:${MONGODB_EXPOSE}:${MONGODB_PORT}"
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -19,8 +20,8 @@ services:
     container_name: book_exchange_bot
     restart: unless-stopped
     environment:
-      - MONGODB_URI=${MONGODB_URI}
-      - BOT_TOKEN=${BOT_TOKEN}
+      MONGODB_URI: mongodb://mongodb:${MONGODB_PORT}/${MONGODB_DBNAME}
+      BOT_TOKEN: ${BOT_TOKEN}
     depends_on:
       - mongodb
     networks:
