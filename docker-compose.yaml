@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: book_exchange_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: bookex
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - book_exchange_network
+
+volumes:
+  mongodb_data:
+    name: book_exchange_mongodb_data
+
+networks:
+  book_exchange_network:
+    name: book_exchange_network
+    driver: bridge
