@@ -15,7 +15,7 @@ export const handleMatches = async (ctx) => {
     if (!matches.length) {
       return await ctx.reply(
         "You don't have any matches yet. 🤔\n" +
-          "Use /browse to discover more books!"
+        "Use /browse to discover more books!"
       );
     }
 
@@ -51,8 +51,8 @@ export const handleMatches = async (ctx) => {
 
     await ctx.reply(
       "Your Matches 🤝\n\n" +
-        matchMessages.join("\n\n") +
-        "\n\nStart a conversation to arrange your book exchange!"
+      matchMessages.join("\n\n") +
+      "\n\nStart a conversation to arrange your book exchange!"
     );
   } catch (error) {
     global.app.logger.error("❌ Matches command error:", error);

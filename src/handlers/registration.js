@@ -1,11 +1,23 @@
 // src/handlers/registration.js
 import { User } from "../models/user.js";
+import { getConditionKeyboard, getYesNoKeyboard, getMainKeyboard, getBackKeyboard } from "../utils/keyboard.js";
 
 export const handleRegistrationStep = async (ctx) => {
   const { message } = ctx;
-  const { state, step, tempData } = ctx.session;
+  const { state, step } = ctx.session;
 
   if (state !== "registration") return;
+
+  // Check for cancel action - this needs to be handled first
+  if (message.text === "🔙 Cancel Registration") {
+    ctx.session.state = "idle";
+    ctx.session.step = 0;
+    ctx.session.tempData = {};
+    await ctx.reply("Registration cancelled. You can start over anytime.", {
+      reply_markup: getMainKeyboard()
+    });
+    return;
+  }
 
   try {
     // Initialize tempData if it doesn't exist
@@ -17,7 +29,9 @@ export const handleRegistrationStep = async (ctx) => {
       case 1: // Book title
         ctx.session.tempData.currentBook = { title: message.text };
         ctx.session.step = 2;
-        await ctx.reply("Great! Now please send me the author's name.");
+        await ctx.reply("Great! Now please send me the author's name.", {
+          reply_markup: getBackKeyboard("🔙 Cancel Registration")
+        });
         break;
 
       case 2: // Book author
@@ -25,14 +39,22 @@ export const handleRegistrationStep = async (ctx) => {
         ctx.session.step = 3;
         await ctx.reply(
           "Thanks! How would you rate the book's condition?\n" +
-            "Choose: New 📘, Good 👍, Fair 👌, or Poor 😕"
+          "Choose one of the options below:",
+          {
+            reply_markup: getConditionKeyboard()
+          }
         );
         break;
 
       case 3: // Book condition
         const condition = message.text.toLowerCase();
         if (!["new", "good", "fair", "poor"].includes(condition)) {
-          await ctx.reply("Please choose one of: New, Good, Fair, or Poor");
+          await ctx.reply(
+            "Please choose one of the provided options:",
+            {
+              reply_markup: getConditionKeyboard()
+            }
+          );
           return;
         }
         ctx.session.tempData.currentBook.condition = condition;
@@ -49,8 +71,10 @@ export const handleRegistrationStep = async (ctx) => {
         // Check if user wants to add another book
         if (user.books.length < 3) {
           await ctx.reply(
-            "Book added! Would you like to add another book? (yes/no)\n" +
-              `You can add ${3 - user.books.length} more books.`
+            `Book added! Would you like to add another book? You can add ${3 - user.books.length} more books.`,
+            {
+              reply_markup: getYesNoKeyboard()
+            }
           );
           ctx.session.step = 4;
         } else {
@@ -62,7 +86,9 @@ export const handleRegistrationStep = async (ctx) => {
         if (message.text.toLowerCase() === "yes") {
           ctx.session.step = 1;
           ctx.session.tempData.currentBook = {};
-          await ctx.reply("Ok! Please send me the title of your next book.");
+          await ctx.reply("Ok! Please send me the title of your next book.", {
+            reply_markup: getBackKeyboard("🔙 Cancel Registration")
+          });
         } else {
           await completeRegistration(ctx);
         }
@@ -71,22 +97,24 @@ export const handleRegistrationStep = async (ctx) => {
   } catch (error) {
     global.app.logger.error("❌ Registration error:", error);
     await ctx.reply(
-      "Sorry, something went wrong. Please try again or use /start to restart."
+      "Sorry, something went wrong. Please try again or use /start to restart.",
+      {
+        reply_markup: getMainKeyboard()
+      }
     );
   }
 };
 
 const completeRegistration = async (ctx) => {
-  ctx.session.state = "idle";  // Changed from null to "idle"
+  ctx.session.state = "idle";
   ctx.session.step = 0;
   ctx.session.tempData = {};
 
   await ctx.reply(
     "Perfect! Your profile is all set up. 🎉\n\n" +
-      "Here's what you can do:\n" +
-      "- /add - Add new book\n" +
-      "- /browse - Start discovering books\n" +
-      "- /profile - View your profile\n" +
-      "- /help - See all commands"
+    "Use the menu below to navigate:",
+    {
+      reply_markup: getMainKeyboard()
+    }
   );
 };

@@ -24,6 +24,8 @@ services:
       BOT_TOKEN: ${BOT_TOKEN}
     depends_on:
       - mongodb
+    volumes:
+      - ./src:/app/src
     networks:
       - book_exchange_network
 

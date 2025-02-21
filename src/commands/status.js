@@ -16,9 +16,9 @@ export const handleStatus = async (ctx) => {
     const statusEmoji = user.status === "active" ? "🟢" : "🔴";
     await ctx.reply(
       `Your status has been updated to: ${statusEmoji} ${user.status}\n\n` +
-        (user.status === "active"
-          ? "Your books are now visible to other users."
-          : "Your books are now hidden from other users.")
+      (user.status === "active"
+        ? "Your books are now visible to other users."
+        : "Your books are now hidden from other users.")
     );
   } catch (error) {
     global.app.logger.error("❌ Status command error:", error);

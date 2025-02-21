@@ -1,5 +1,6 @@
 // src/commands/start.js
 import { User } from "../models/user.js";
+import { getMainKeyboard, getBackKeyboard } from "../utils/keyboard.js";
 
 export const handleStart = async (ctx) => {
   const { from } = ctx;
@@ -25,12 +26,18 @@ export const handleStart = async (ctx) => {
 
       await ctx.reply(
         "Welcome to Book Exchange! 📚\n\n" +
-          "Let's set up your profile. Please add your first book by sending its title."
+        "Let's set up your profile. Please add your first book by sending its title.",
+        {
+          reply_markup: getBackKeyboard("🔙 Cancel Registration")
+        }
       );
     } else {
       await ctx.reply(
         "Welcome back to Book Exchange! 📚\n\n" +
-          "Use /browse to discover books or /profile to manage your listings."
+        "Use the menu below to navigate:",
+        {
+          reply_markup: getMainKeyboard()
+        }
       );
     }
   } catch (error) {

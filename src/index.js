@@ -8,7 +8,7 @@ import { Bot, session } from "grammy";
 import { commandHandler } from "./commands/index.js";
 import { stateHandler } from "./middlewares/index.js";
 import { rateLimit } from "./middlewares/rateLimit.js";
-import { handleCallbackQuery } from "./handlers/callback_query.js";
+import * as browse from "./commands/browse.js"
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -17,7 +17,10 @@ bot.use(session({
   initial: () => ({
     state: "idle",
     step: 0,
-    tempData: {}
+    tempData: {},
+    browsing: {
+      currentUserId: null
+    }
   })
 }));
 
@@ -26,9 +29,13 @@ global.app.db.connect(process.env.MONGODB_URI);
 
 // Setup middleware
 bot.use(rateLimit);
-bot.on("callback_query", handleCallbackQuery);
 bot.use(stateHandler);
 bot.use(commandHandler);
+
+// Error handler
+bot.catch((err) => {
+  global.app.logger.error("Bot encountered an error:", err);
+});
 
 // Start bot
 bot.start({
@@ -40,3 +47,6 @@ bot.start({
     }, 3600000);
   },
 });
+
+// Pass bot instance
+browse.setBotInstance(bot);
