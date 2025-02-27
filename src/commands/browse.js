@@ -103,21 +103,87 @@ async function showBook(ctx, user) {
 // Send match notification to a user
 async function notifyUserAboutMatch(bot, userId, otherUser) {
   try {
+    // Get a book from the other user for the notification
     const book = otherUser.books[0];
-    const message = `🎉 New Match! 🎉\n\n` +
+    
+    // Create username display for contact
+    const contactInfo = otherUser.username 
+      ? `@${otherUser.username}` 
+      : "this user (they don't have a username)";
+    
+    // Create a more detailed match message with contact instructions
+    const message = `🎉 Book Match! 🎉\n\n` +
       `You've matched with ${otherUser.firstName} ${otherUser.lastName || ""}!\n\n` +
       `They like your book and you like their book:\n` +
       `📚 ${book.title} by ${book.author}\n\n` +
-      `Use the 🔄 My Matches button to see all your matches and start a conversation.`;
+      `You can now contact ${contactInfo} directly through Telegram to arrange your book exchange.`;
 
-    await botInstance.api.sendMessage(userId, message, {
+    // Send the message with the main keyboard
+    const sentMessage = await bot.api.sendMessage(userId, message, {
       reply_markup: getMainKeyboard()
     });
-
-    global.app.logger.info(`Match notification sent to user ${userId}`);
+    
+    global.app.logger.info(`Match notification sent to user ${userId} - Message ID: ${sentMessage.message_id}`);
     return true;
   } catch (error) {
     global.app.logger.error(`❌ Failed to send match notification to user ${userId}:`, error);
+    return false;
+  }
+}
+
+// Enhanced match creation and notification function
+async function createMatchAndNotify(ctx, currentUser, targetUserId) {
+  try {
+    // Check if match already exists
+    const existingMatch = await Match.findOne({
+      users: { $all: [currentUser.telegramId, targetUserId] }
+    });
+    
+    if (existingMatch) {
+      global.app.logger.debug(`Match already exists between users ${currentUser.telegramId} and ${targetUserId}`);
+      return false;
+    }
+    
+    // Get target user's information
+    const targetUser = await User.findOne({ telegramId: targetUserId });
+    
+    if (!targetUser) {
+      global.app.logger.error(`Target user ${targetUserId} not found for match creation`);
+      return false;
+    }
+    
+    // Create new match
+    const match = await Match.create({
+      users: [currentUser.telegramId, targetUserId],
+      status: "active"
+    });
+    
+    global.app.logger.info(`Match created: ${match._id} between users ${currentUser.telegramId} and ${targetUserId}`);
+    
+    // Create contact info for the match notification
+    const targetContactInfo = targetUser.username 
+      ? `@${targetUser.username}` 
+      : "this user (they don't have a username)";
+    
+    // Notify the current user with enhanced message
+    await ctx.reply(
+      "It's a match! 🎉\n\n" +
+      `You and ${targetUser.firstName} ${targetUser.lastName || ""} both liked each other's books!\n\n` +
+      `You can contact ${targetContactInfo} directly through Telegram to arrange your book exchange.`
+    );
+    
+    // Notify the other user
+    const notified = await notifyUserAboutMatch(ctx.bot, targetUserId, currentUser);
+    
+    if (notified) {
+      global.app.logger.info(`Both users notified about match ${match._id}`);
+      return true;
+    } else {
+      global.app.logger.warn(`Could not notify other user ${targetUserId} about match ${match._id}`);
+      return false;
+    }
+  } catch (error) {
+    global.app.logger.error(`Error creating match between ${currentUser.telegramId} and ${targetUserId}:`, error);
     return false;
   }
 }

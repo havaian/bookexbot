@@ -7,17 +7,19 @@ export const handleHelp = async (ctx) => {
       "📚 Book Exchange Bot - Help Guide\n\n" +
       "Welcome to Book Exchange! Use the keyboard menu below to navigate:\n\n" +
       "📚 Browse Books - Discover and like books from other users\n" +
-      "📋 My Profile - View your profile and list of books\n" +
-      "🔄 My Matches - See users who liked your books too\n" +
-      "📕 Add Book - Add a new book to your collection\n" +
-      "⚙️ Toggle Status - Switch between active/inactive\n" +
+      "📋 My Profile - Manage your profile, status, and books\n" +
       "ℹ️ Help - Show this help message\n\n" +
-      "💡 Tips:\n" +
-      "• You can add up to 3 books to your profile\n" +
-      "• Only active users can be found when browsing\n" +
+      "💡 Profile Management:\n" +
+      "• Toggle your active/inactive status\n" +
+      "• Add new books (up to 3 total)\n" +
+      "• Manage your existing books\n\n" +
+      "💡 Book Exchange Process:\n" +
+      "• Add books to your profile\n" +
+      "• Browse books from other users\n" +
+      "• Like books that interest you\n" +
       "• When you and another user both like each other's books, it's a match!\n" +
-      "• After matching, you can contact them via Telegram to arrange an exchange\n" +
-      "• Use the back button to return to the main menu anytime\n\n" +
+      "• After a match, you'll receive the other user's contact details\n" +
+      "• Contact them directly through Telegram to arrange your exchange\n\n" +
       "Happy book exchanging! 📖",
       {
         reply_markup: getMainKeyboard()
