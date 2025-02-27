@@ -1,5 +1,4 @@
 // src/models/user.js
-
 import mongoose from "mongoose";
 
 const bookSchema = new mongoose.Schema({
@@ -17,6 +16,7 @@ const userSchema = new mongoose.Schema({
   lastName: String,
   books: [bookSchema],
   status: { type: String, enum: ["active", "inactive"], default: "active" },
+  language: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

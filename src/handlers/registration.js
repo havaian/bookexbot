@@ -1,20 +1,22 @@
 // src/handlers/registration.js
 import { User } from "../models/user.js";
 import { getConditionKeyboard, getYesNoKeyboard, getMainKeyboard, getBackKeyboard } from "../utils/keyboard.js";
+import { t, formatCondition } from "../utils/localization.js";
 
 export const handleRegistrationStep = async (ctx) => {
   const { message } = ctx;
   const { state, step } = ctx.session;
+  const langCode = ctx.session?.language;
 
   if (state !== "registration") return;
-
+  
   // Check for cancel action - this needs to be handled first
-  if (message.text === "🔙 Cancel Registration") {
+  if (message.text === t("cancel_registration", langCode)) {
     ctx.session.state = "idle";
     ctx.session.step = 0;
     ctx.session.tempData = {};
-    await ctx.reply("Registration cancelled. You can start over anytime.", {
-      reply_markup: getMainKeyboard()
+    await ctx.reply(t("registration_cancelled", langCode), {
+      reply_markup: getMainKeyboard(langCode)
     });
     return;
   }
@@ -29,8 +31,8 @@ export const handleRegistrationStep = async (ctx) => {
       case 1: // Book title
         ctx.session.tempData.currentBook = { title: message.text };
         ctx.session.step = 2;
-        await ctx.reply("Great! Now please send me the author's name.", {
-          reply_markup: getBackKeyboard("🔙 Cancel Registration")
+        await ctx.reply(t("registration_author", langCode), {
+          reply_markup: getBackKeyboard(t("cancel_registration", langCode), langCode)
         });
         break;
 
@@ -38,10 +40,9 @@ export const handleRegistrationStep = async (ctx) => {
         ctx.session.tempData.currentBook.author = message.text;
         ctx.session.step = 3;
         await ctx.reply(
-          "Thanks! How would you rate the book's condition?\n" +
-          "Choose one of the options below:",
+          t("registration_condition", langCode),
           {
-            reply_markup: getConditionKeyboard()
+            reply_markup: getConditionKeyboard(langCode)
           }
         );
         break;
@@ -50,9 +51,9 @@ export const handleRegistrationStep = async (ctx) => {
         const condition = message.text.toLowerCase();
         if (!["new", "good", "fair", "poor"].includes(condition)) {
           await ctx.reply(
-            "Please choose one of the provided options:",
+            t("error_invalid_input", langCode),
             {
-              reply_markup: getConditionKeyboard()
+              reply_markup: getConditionKeyboard(langCode)
             }
           );
           return;
@@ -71,9 +72,9 @@ export const handleRegistrationStep = async (ctx) => {
         // Check if user wants to add another book
         if (user.books.length < 3) {
           await ctx.reply(
-            `Book added! Would you like to add another book? You can add ${3 - user.books.length} more books.`,
+            t("registration_add_another", langCode, 3 - user.books.length),
             {
-              reply_markup: getYesNoKeyboard()
+              reply_markup: getYesNoKeyboard(langCode)
             }
           );
           ctx.session.step = 4;
@@ -86,8 +87,8 @@ export const handleRegistrationStep = async (ctx) => {
         if (message.text.toLowerCase() === "yes") {
           ctx.session.step = 1;
           ctx.session.tempData.currentBook = {};
-          await ctx.reply("Ok! Please send me the title of your next book.", {
-            reply_markup: getBackKeyboard("🔙 Cancel Registration")
+          await ctx.reply(t("book_add_title", langCode), {
+            reply_markup: getBackKeyboard(t("cancel_registration", langCode), langCode)
           });
         } else {
           await completeRegistration(ctx);
@@ -97,24 +98,24 @@ export const handleRegistrationStep = async (ctx) => {
   } catch (error) {
     global.app.logger.error("❌ Registration error:", error);
     await ctx.reply(
-      "Sorry, something went wrong. Please try again or use /start to restart.",
+      t("error_generic", langCode),
       {
-        reply_markup: getMainKeyboard()
+        reply_markup: getMainKeyboard(langCode)
       }
     );
   }
 };
 
 const completeRegistration = async (ctx) => {
+  const langCode = ctx.session?.language;
   ctx.session.state = "idle";
   ctx.session.step = 0;
   ctx.session.tempData = {};
 
   await ctx.reply(
-    "Perfect! Your profile is all set up. 🎉\n\n" +
-    "Use the menu below to navigate:",
+    t("registration_complete", langCode),
     {
-      reply_markup: getMainKeyboard()
+      reply_markup: getMainKeyboard(langCode)
     }
   );
 };

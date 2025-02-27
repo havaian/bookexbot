@@ -1,12 +1,17 @@
 // src/commands/status.js
 import { User } from "../models/user.js";
+import { getMainKeyboard } from "../utils/keyboard.js";
+import { t } from "../utils/localization.js";
 
 export const handleStatus = async (ctx) => {
   try {
+    const langCode = ctx.session?.language;
     const user = await User.findOne({ telegramId: ctx.from.id });
 
     if (!user) {
-      return await ctx.reply("Please use /start to register first!");
+      return await ctx.reply(t("error_not_registered", langCode), {
+        reply_markup: getMainKeyboard(langCode)
+      });
     }
 
     // Toggle status
@@ -15,13 +20,15 @@ export const handleStatus = async (ctx) => {
 
     const statusEmoji = user.status === "active" ? "🟢" : "🔴";
     await ctx.reply(
-      `Your status has been updated to: ${statusEmoji} ${user.status}\n\n` +
-      (user.status === "active"
-        ? "Your books are now visible to other users."
-        : "Your books are now hidden from other users.")
+      t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`)),
+      {
+        reply_markup: getMainKeyboard(langCode)
+      }
     );
   } catch (error) {
     global.app.logger.error("❌ Status command error:", error);
-    await ctx.reply("Sorry, something went wrong. Please try again later.");
+    await ctx.reply(t("error_generic", langCode), {
+      reply_markup: getMainKeyboard(langCode)
+    });
   }
 };

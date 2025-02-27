@@ -1,9 +1,10 @@
-// src/commands/browse.js
+// src/commands/browse.js - updated to show all books and handle skips permanently
 import { User } from "../models/user.js";
 import { Like } from "../models/like.js";
 import { Match } from "../models/match.js";
 import { cacheService } from "../services/cache.js";
 import { getBrowseKeyboard, getMainKeyboard } from "../utils/keyboard.js";
+import { t, formatCondition } from "../utils/localization.js";
 
 // Store the current user being viewed in the session
 const storeCurrentBrowseUser = (ctx, user) => {
@@ -12,33 +13,34 @@ const storeCurrentBrowseUser = (ctx, user) => {
   };
 };
 
-let botInstance = null;
-
-export const setBotInstance = (bot) => {
-  botInstance = bot;
-};
-
-async function findNextBook(currentUserId) {
+async function findNextUser(currentUserId) {
   try {
     // Get users already liked
     const likes = await Like.find({ fromUser: currentUserId });
     const likedUserIds = likes.map((like) => like.toUser);
-
-    // Get recently viewed users from cache
-    const recentlyViewed = cacheService.getBrowseHistory(currentUserId) || [];
-
-    global.app.logger.debug("Finding next book:", {
+    
+    // Get skipped users - we'll store them in a permanent collection now
+    const skips = await Like.find({ 
+      fromUser: currentUserId,
+      action: "skip" // New field to distinguish skips from likes
+    });
+    const skippedUserIds = skips.map((skip) => skip.toUser);
+    
+    // Get recently viewed users from cache - not needed anymore since we persist skips
+    // const recentlyViewed = cacheService.getBrowseHistory(currentUserId) || [];
+    
+    global.app.logger.debug("Finding next user:", {
       currentUserId,
-      likedUserIds,
-      recentlyViewed,
+      likedUserIds: likedUserIds.length,
+      skippedUserIds: skippedUserIds.length
     });
 
-    // Find all eligible users
+    // Find all eligible users - exclude both liked and skipped users
     const query = {
       $match: {
-        telegramId: {
-          $ne: currentUserId,
-          $nin: [...likedUserIds, ...recentlyViewed]
+        telegramId: { 
+          $ne: currentUserId, 
+          $nin: [...likedUserIds, ...skippedUserIds] 
         },
         status: "active",
         "books.0": { $exists: true }
@@ -52,50 +54,56 @@ async function findNextBook(currentUserId) {
       { $sample: { size: 1 } }
     ]);
 
-    global.app.logger.debug("Found users:", users);
+    global.app.logger.debug("Found users:", users.length);
 
     if (!users || users.length === 0) {
-      // If no new users, clear history and try again without recently viewed filter
-      if (recentlyViewed.length > 0) {
-        global.app.logger.debug("No users found, clearing history and retrying");
-        cacheService.clearBrowseHistory(currentUserId);
-        return findNextBook(currentUserId);
-      }
-      global.app.logger.debug("No users found even after clearing history");
+      global.app.logger.debug("No users found");
       return null;
     }
-
-    // Add to recently viewed
-    cacheService.addToBrowseHistory(currentUserId, users[0].telegramId);
-
+    
+    // No need to add to cache since we'll persist skips in the database
+    // cacheService.addToBrowseHistory(currentUserId, users[0].telegramId);
+    
     return users[0];
   } catch (error) {
-    global.app.logger.error("Error in findNextBook:", error);
+    global.app.logger.error("Error in findNextUser:", error);
     throw error;  // Re-throw to be handled by the caller
   }
 }
 
-// Show book to user with enhanced error handling
-async function showBook(ctx, user) {
+// Format all user books for display
+function formatUserBooks(user, langCode) {
+  let message = "";
+  
+  user.books.forEach((book, index) => {
+    message += `📚 ${t("book_item", langCode, index + 1, book.title, book.author, formatCondition(book.condition, langCode))}\n\n`;
+  });
+  
+  return message;
+}
+
+// Show all books from user with enhanced error handling
+async function showUserBooks(ctx, user) {
   try {
-    const book = user.books[0];
-    const message = `📚 Book Available:\n\n` +
-      `Title: ${book.title}\n` +
-      `Author: ${book.author}\n` +
-      `Condition: ${book.condition || 'Not specified'}\n\n` +
-      `What do you think?`;
+    const langCode = ctx.session?.language;
+    
+    // Create a message showing all of the user's books
+    const message = `${t("browse_user_header", langCode, user.firstName)}\n\n` +
+      formatUserBooks(user, langCode) +
+      `\n${t("browse_question", langCode)}`;
 
     // Store the current user in session
     storeCurrentBrowseUser(ctx, user);
     ctx.session.state = "browsing";
 
     await ctx.reply(message, {
-      reply_markup: getBrowseKeyboard()
+      reply_markup: getBrowseKeyboard(langCode)
     });
   } catch (error) {
-    global.app.logger.error("❌ Error showing book:", error);
-    await ctx.reply("Sorry, there was an error displaying this book. Use the Browse button to try again.", {
-      reply_markup: getMainKeyboard()
+    const langCode = ctx.session?.language;
+    global.app.logger.error("❌ Error showing books:", error);
+    await ctx.reply(t("browse_error", langCode), {
+      reply_markup: getMainKeyboard(langCode)
     });
   }
 }
@@ -103,24 +111,24 @@ async function showBook(ctx, user) {
 // Send match notification to a user
 async function notifyUserAboutMatch(bot, userId, otherUser) {
   try {
-    // Get a book from the other user for the notification
-    const book = otherUser.books[0];
+    const user = await User.findOne({ telegramId: userId });
+    const langCode = user?.language;
     
-    // Create username display for contact
+    // Get contact info for the notification
     const contactInfo = otherUser.username 
       ? `@${otherUser.username}` 
-      : "this user (they don't have a username)";
+      : t("match_no_username", langCode);
+    
+    // Create a message showing the other user's books
+    const booksMessage = formatUserBooks(otherUser, langCode);
     
     // Create a more detailed match message with contact instructions
-    const message = `🎉 Book Match! 🎉\n\n` +
-      `You've matched with ${otherUser.firstName} ${otherUser.lastName || ""}!\n\n` +
-      `They like your book and you like their book:\n` +
-      `📚 ${book.title} by ${book.author}\n\n` +
-      `You can now contact ${contactInfo} directly through Telegram to arrange your book exchange.`;
+    const message = t("match_notification_other", langCode,
+      `${otherUser.firstName} ${otherUser.lastName || ""}`, booksMessage, contactInfo);
 
     // Send the message with the main keyboard
     const sentMessage = await bot.api.sendMessage(userId, message, {
-      reply_markup: getMainKeyboard()
+      reply_markup: getMainKeyboard(langCode)
     });
     
     global.app.logger.info(`Match notification sent to user ${userId} - Message ID: ${sentMessage.message_id}`);
@@ -131,94 +139,36 @@ async function notifyUserAboutMatch(bot, userId, otherUser) {
   }
 }
 
-// Enhanced match creation and notification function
-async function createMatchAndNotify(ctx, currentUser, targetUserId) {
-  try {
-    // Check if match already exists
-    const existingMatch = await Match.findOne({
-      users: { $all: [currentUser.telegramId, targetUserId] }
-    });
-    
-    if (existingMatch) {
-      global.app.logger.debug(`Match already exists between users ${currentUser.telegramId} and ${targetUserId}`);
-      return false;
-    }
-    
-    // Get target user's information
-    const targetUser = await User.findOne({ telegramId: targetUserId });
-    
-    if (!targetUser) {
-      global.app.logger.error(`Target user ${targetUserId} not found for match creation`);
-      return false;
-    }
-    
-    // Create new match
-    const match = await Match.create({
-      users: [currentUser.telegramId, targetUserId],
-      status: "active"
-    });
-    
-    global.app.logger.info(`Match created: ${match._id} between users ${currentUser.telegramId} and ${targetUserId}`);
-    
-    // Create contact info for the match notification
-    const targetContactInfo = targetUser.username 
-      ? `@${targetUser.username}` 
-      : "this user (they don't have a username)";
-    
-    // Notify the current user with enhanced message
-    await ctx.reply(
-      "It's a match! 🎉\n\n" +
-      `You and ${targetUser.firstName} ${targetUser.lastName || ""} both liked each other's books!\n\n` +
-      `You can contact ${targetContactInfo} directly through Telegram to arrange your book exchange.`
-    );
-    
-    // Notify the other user
-    const notified = await notifyUserAboutMatch(ctx.bot, targetUserId, currentUser);
-    
-    if (notified) {
-      global.app.logger.info(`Both users notified about match ${match._id}`);
-      return true;
-    } else {
-      global.app.logger.warn(`Could not notify other user ${targetUserId} about match ${match._id}`);
-      return false;
-    }
-  } catch (error) {
-    global.app.logger.error(`Error creating match between ${currentUser.telegramId} and ${targetUserId}:`, error);
-    return false;
-  }
-}
-
 export const handleBrowse = async (ctx) => {
   try {
+    const langCode = ctx.session?.language;
     const currentUser = await User.findOne({ telegramId: ctx.from.id });
     if (!currentUser) {
-      return await ctx.reply("Please use /start to register first!", {
-        reply_markup: getMainKeyboard()
+      return await ctx.reply(t("error_not_registered", langCode), {
+        reply_markup: getMainKeyboard(langCode)
       });
     }
 
     // Check if user has at least one book
     if (!currentUser.books || currentUser.books.length === 0) {
-      return await ctx.reply(
-        "You need to add at least one book before you can browse! Use the 📕 Add Book button to add your first book.",
-        {
-          reply_markup: getMainKeyboard()
-        }
-      );
-    }
-
-    const nextBook = await findNextBook(ctx.from.id);
-    if (!nextBook) {
-      return await ctx.reply("No more books available right now. Check back later! 📚", {
-        reply_markup: getMainKeyboard()
+      return await ctx.reply(t("browse_no_books", langCode), {
+        reply_markup: getMainKeyboard(langCode)
       });
     }
 
-    await showBook(ctx, nextBook);
+    const nextUser = await findNextUser(ctx.from.id);
+    if (!nextUser) {
+      return await ctx.reply(t("browse_no_more_books", langCode), {
+        reply_markup: getMainKeyboard(langCode)
+      });
+    }
+
+    await showUserBooks(ctx, nextUser);
   } catch (error) {
+    const langCode = ctx.session?.language;
     global.app.logger.error("❌ Browse command error:", error);
-    await ctx.reply("Sorry, something went wrong. Please try again later.", {
-      reply_markup: getMainKeyboard()
+    await ctx.reply(t("error_generic", langCode), {
+      reply_markup: getMainKeyboard(langCode)
     });
   }
 };
@@ -226,12 +176,13 @@ export const handleBrowse = async (ctx) => {
 // Handle like/skip actions from keyboard
 export const handleBrowseAction = async (ctx) => {
   try {
-    const action = ctx.message.text.startsWith("👍") ? "like" : "skip";
+    const langCode = ctx.session?.language;
+    const action = ctx.message.text.startsWith(t("browse_like", langCode).substring(0, 2)) ? "like" : "skip";
 
     // Get the current user being viewed from session
     if (!ctx.session.browsing || !ctx.session.browsing.currentUserId) {
-      return await ctx.reply("Session expired. Please start browsing again.", {
-        reply_markup: getMainKeyboard()
+      return await ctx.reply(t("browse_session_expired", langCode), {
+        reply_markup: getMainKeyboard(langCode)
       });
     }
 
@@ -240,34 +191,35 @@ export const handleBrowseAction = async (ctx) => {
     if (!currentUser || !currentUser.books || currentUser.books.length === 0) {
       ctx.session.state = "idle";
       ctx.session.browsing = { currentUserId: null };
-      return await ctx.reply(
-        "You need to add at least one book before you can like others! Use the 📕 Add Book button to add your first book.",
-        {
-          reply_markup: getMainKeyboard()
-        }
-      );
+      return await ctx.reply(t("browse_no_books", langCode), {
+        reply_markup: getMainKeyboard(langCode)
+      });
     }
-
+    
     const targetUserId = ctx.session.browsing.currentUserId;
 
-    global.app.logger.debug(`User ${ctx.from.id} ${action === "like" ? action : action + "pe"}d user ${targetUserId}`);
+    global.app.logger.debug(`User ${ctx.from.id} ${action}d user ${targetUserId}`);
 
     // Store the current state before processing to avoid race conditions
     const currentBrowsing = { ...ctx.session.browsing };
 
     // Immediately acknowledge the action
-    let acknowledgeMsg = action === "like" ? "👍 You liked this book!" : "👎 Skipped this book.";
+    let acknowledgeMsg = action === "like" 
+      ? t("browse_liked", langCode) 
+      : t("browse_skipped", langCode);
     await ctx.reply(acknowledgeMsg);
 
     // Reset session browsing state to prevent double processing
+    ctx.session.state = "idle";
     ctx.session.browsing = { currentUserId: null };
 
-    // Process like action
+    // Process action
     if (action === "like") {
       // Check if like already exists (prevent duplicates)
       const existingLike = await Like.findOne({
         fromUser: ctx.from.id,
-        toUser: targetUserId
+        toUser: targetUserId,
+        action: "like"
       });
 
       if (!existingLike) {
@@ -275,6 +227,7 @@ export const handleBrowseAction = async (ctx) => {
         await Like.create({
           fromUser: ctx.from.id,
           toUser: targetUserId,
+          action: "like"
         });
 
         global.app.logger.info(`Like created: User ${ctx.from.id} liked user ${targetUserId}`);
@@ -283,6 +236,7 @@ export const handleBrowseAction = async (ctx) => {
         const mutualLike = await Like.findOne({
           fromUser: targetUserId,
           toUser: ctx.from.id,
+          action: "like"
         });
 
         global.app.logger.debug(`Mutual like check: ${mutualLike ? 'Match found!' : 'No match yet'}`);
@@ -306,18 +260,22 @@ export const handleBrowseAction = async (ctx) => {
             const targetUser = await User.findOne({ telegramId: targetUserId });
 
             if (currentUser && targetUser) {
+              // Format books message for notification
+              const booksMessage = formatUserBooks(targetUser, langCode);
+              
+              // Get contact info
+              const contactInfo = targetUser.username 
+                ? `@${targetUser.username}` 
+                : t("match_no_username", langCode);
+              
               // Notify the current user
-              await ctx.reply(
-                "It's a match! 🎉\n" +
-                `You and ${targetUser.firstName} ${targetUser.lastName || ""} both liked each other's books!\n` +
-                "Use the Matches button to see all your matches and start a conversation."
-              );
+              await ctx.reply(t("match_notification", langCode,
+                `${targetUser.firstName} ${targetUser.lastName || ""}`,
+                booksMessage,
+                contactInfo));
 
               // Notify the other user
               const notified = await notifyUserAboutMatch(ctx.bot, targetUserId, currentUser);
-
-              console.log(targetUserId)
-              console.log(currentUser)
 
               if (notified) {
                 global.app.logger.info(`Both users notified about match ${match._id}`);
@@ -332,39 +290,51 @@ export const handleBrowseAction = async (ctx) => {
       } else {
         global.app.logger.debug(`User ${ctx.from.id} already liked user ${targetUserId}`);
       }
+    } else if (action === "skip") {
+      // Store skip permanently in database 
+      const existingSkip = await Like.findOne({
+        fromUser: ctx.from.id,
+        toUser: targetUserId,
+        action: "skip"
+      });
+      
+      if (!existingSkip) {
+        // Create new skip record
+        await Like.create({
+          fromUser: ctx.from.id,
+          toUser: targetUserId,
+          action: "skip"
+        });
+        global.app.logger.info(`Skip created: User ${ctx.from.id} skipped user ${targetUserId}`);
+      }
     }
 
     // Wait a moment before showing the next book
     setTimeout(async () => {
       try {
         // Show next book
-        const nextBook = await findNextBook(ctx.from.id);
-        if (nextBook) {
-          await showBook(ctx, nextBook);
+        const nextUser = await findNextUser(ctx.from.id);
+        if (nextUser) {
+          await showUserBooks(ctx, nextUser);
         } else {
-          await ctx.reply(
-            "No more books available right now. Check back later! 📚",
-            {
-              reply_markup: getMainKeyboard()
-            }
-          );
+          await ctx.reply(t("browse_no_more_books", langCode), {
+            reply_markup: getMainKeyboard(langCode)
+          });
         }
       } catch (error) {
-        global.app.logger.error("❌ Error showing next book:", error);
-        await ctx.reply(
-          "Sorry, there was an error finding the next book.",
-          {
-            reply_markup: getMainKeyboard()
-          }
-        );
+        global.app.logger.error("❌ Error showing next user:", error);
+        await ctx.reply(t("browse_error_next", langCode), {
+          reply_markup: getMainKeyboard(langCode)
+        });
       }
     }, 500); // Small delay to ensure messages are received in the right order
   } catch (error) {
+    const langCode = ctx.session?.language;
     global.app.logger.error("❌ Browse action error:", error);
     ctx.session.state = "idle";
     ctx.session.browsing = { currentUserId: null };
-    await ctx.reply("Sorry, something went wrong. Please try again.", {
-      reply_markup: getMainKeyboard()
+    await ctx.reply(t("error_generic", langCode), {
+      reply_markup: getMainKeyboard(langCode)
     });
   }
 };
