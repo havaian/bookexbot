@@ -1,8 +1,8 @@
 {
   "name": "book-exchange-bot",
   "version": "1.0.0",
-  "description": "",
-  "main": "Telegram bot for book exchanges",
+  "description": "Telegram bot for book exchanges",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
