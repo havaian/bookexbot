@@ -6,10 +6,13 @@ import { handleInitialLanguageSelection } from '../commands/start.js';
 import { handleLanguageSelection } from '../commands/language.js';
 import { handleKeyboardInput } from './keyboardHandler.js';
 import { getMainKeyboard } from '../utils/keyboard.js';
+import { handleBrowseAction } from '../commands/browse.js';
 import { t } from '../utils/localization.js';
 
 export const stateHandler = async (ctx, next) => {
   try {
+    console.log(ctx);
+
     // Always log the current state for debugging
     global.app.logger.debug(`Processing message in state: ${ctx.session?.state}, step: ${ctx.session?.step}`);
     
