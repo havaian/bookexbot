@@ -10,7 +10,7 @@ import { stateHandler } from "./middlewares/index.js";
 import { rateLimit } from "./middlewares/rateLimit.js";
 import { DEFAULT_LANGUAGE } from "./utils/localization.js";
 import { User } from "./models/user.js";
-import { setBotInstance, checkBrowsingTimeout  } from "./commands/browse.js";
+import { setBotInstance, checkBrowsingTimeout } from "./commands/browse.js";
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -32,20 +32,21 @@ bot.use(session({
 // Language middleware to load user's language preference
 bot.use(async (ctx, next) => {
   if (ctx.from) {
-    // Only run this middleware for message updates
     try {
-      // Try to load user's language preference if not already in session
-      if (!ctx.session.language) {
-        const user = await User.findOne({ telegramId: ctx.from.id });
-        if (user && user.language) {
-          ctx.session.language = user.language;
-        }
+      const user = await User.findOne({ telegramId: ctx.from.id });
+      if (user && user.language) {
+        // Set the language in session
+        ctx.session.language = user.language;
+        console.log(`User language set to: ${ctx.session.language}`);
+      } else {
+        console.log(`No language preference found for user ${ctx.from.id}, using default: ${DEFAULT_LANGUAGE}`);
+        ctx.session.language = DEFAULT_LANGUAGE;
       }
     } catch (error) {
       global.app.logger.error("Error loading user language:", error);
+      ctx.session.language = DEFAULT_LANGUAGE;
     }
   }
-  
   return next();
 });
 
@@ -60,16 +61,23 @@ bot.use(rateLimit);
 bot.use(stateHandler);
 bot.use(commandHandler);
 
+setBotInstance(bot);
+
 // Start bot
 bot.start({
   onStart: () => {
     global.app.logger.info(`✅ Bot started at: ${new Date().toISOString()}`);
     // Log cache stats every hour
     setInterval(() => {
-      global.app.logger.debug("✅ Cache stats:", global.app.cache.getStats());
+      global.app.logger.info("✅ Cache stats:", global.app.cache.getStats());
     }, 3600000);
   },
 });
 
-// Share bot instance with the browse module for notifications
-setBotInstance(bot);
+bot.catch((err) => {
+  console.error('Bot error caught:', err);
+  // If using your logger
+  if (global.app && global.app.logger) {
+    global.app.logger.error('Bot error caught:', err);
+  }
+});

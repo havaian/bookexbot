@@ -57,7 +57,7 @@ export const handleProfile = async (ctx) => {
     ctx.session.state = "profile_menu";
     
     // Log the state to help with debugging
-    global.app.logger.debug("Profile state set to profile_menu");
+    global.app.logger.info("Profile state set to profile_menu");
   } catch (error) {
     global.app.logger.error("❌ Profile command error:", error);
     await ctx.reply(t("error_generic", ctx.session?.language), {

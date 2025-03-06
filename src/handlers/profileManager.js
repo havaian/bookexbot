@@ -20,10 +20,10 @@ export const handleProfileManagement = async (ctx) => {
   const langCode = ctx.session?.language;
   
   // Log the incoming action
-  global.app.logger.debug(`ProfileManager: Handling "${ctx.message.text}" in state "${ctx.session.state}" with language "${langCode}"`);
+  global.app.logger.info(`ProfileManager: Handling "${ctx.message.text}" in state "${ctx.session.state}" with language "${langCode}"`);
   
   if (!validStates.includes(ctx.session.state)) {
-    global.app.logger.debug(`ProfileManager: Invalid state "${ctx.session.state}"`);
+    global.app.logger.info(`ProfileManager: Invalid state "${ctx.session.state}"`);
     return;
   }
 
@@ -34,7 +34,7 @@ export const handleProfileManagement = async (ctx) => {
     if (text === t("back_to_main", langCode)) {
       ctx.session.state = "idle";
       ctx.session.tempData = {};
-      global.app.logger.debug("ProfileManager: Returning to main menu");
+      global.app.logger.info("ProfileManager: Returning to main menu");
       return await ctx.reply(t("main_menu", langCode), { 
         reply_markup: getMainKeyboard(langCode) 
       });
@@ -42,50 +42,50 @@ export const handleProfileManagement = async (ctx) => {
     
     // Handle profile menu options
     if (ctx.session.state === "profile_menu") {
-      global.app.logger.debug(`ProfileManager: In profile_menu, handling "${text}"`);
+      global.app.logger.info(`ProfileManager: In profile_menu, handling "${text}"`);
       
       if (text === t("profile_toggle_status", langCode)) {
-        global.app.logger.debug("ProfileManager: Toggling status");
+        global.app.logger.info("ProfileManager: Toggling status");
         return await toggleUserStatus(ctx);
       } else if (text === t("profile_manage_books", langCode)) {
-        global.app.logger.debug("ProfileManager: Showing manage books");
+        global.app.logger.info("ProfileManager: Showing manage books");
         return await showManageBooks(ctx);
       } else if (text === t("profile_add_book", langCode)) {
-        global.app.logger.debug("ProfileManager: Handling add book");
+        global.app.logger.info("ProfileManager: Handling add book");
         return await handleAddBook(ctx);
       }
     }
     
     // Handle book management options
     else if (ctx.session.state === "manage_books") {
-      global.app.logger.debug(`ProfileManager: In manage_books, handling "${text}"`);
+      global.app.logger.info(`ProfileManager: In manage_books, handling "${text}"`);
       
       if (text === t("back_to_profile", langCode)) {
-        global.app.logger.debug("ProfileManager: Returning to profile");
+        global.app.logger.info("ProfileManager: Returning to profile");
         return await showProfile(ctx);
       } else if (text === t("profile_add_book", langCode)) {
-        global.app.logger.debug("ProfileManager: Handling add book from manage_books");
+        global.app.logger.info("ProfileManager: Handling add book from manage_books");
         return await handleAddBook(ctx);
       } else if (text.startsWith(t("delete_book_prefix", langCode))) {
-        global.app.logger.debug(`ProfileManager: Initiating deletion for "${text}"`);
+        global.app.logger.info(`ProfileManager: Initiating deletion for "${text}"`);
         return await initiateBookDeletion(ctx, text);
       }
     }
     
     // Handle deletion confirmation
     else if (ctx.session.state === "confirm_delete_book") {
-      global.app.logger.debug(`ProfileManager: In confirm_delete_book, handling "${text}"`);
+      global.app.logger.info(`ProfileManager: In confirm_delete_book, handling "${text}"`);
       
       if (text.startsWith(t("delete_confirm_prefix", langCode))) {
-        global.app.logger.debug("ProfileManager: Confirming deletion");
+        global.app.logger.info("ProfileManager: Confirming deletion");
         return await deleteBook(ctx);
       } else if (text === t("delete_reject", langCode) || text === t("back_to_profile", langCode)) {
-        global.app.logger.debug("ProfileManager: Canceling deletion");
+        global.app.logger.info("ProfileManager: Canceling deletion");
         return await showManageBooks(ctx);
       }
     }
     
-    global.app.logger.debug(`ProfileManager: No handler found for "${text}" in state "${ctx.session.state}"`);
+    global.app.logger.info(`ProfileManager: No handler found for "${text}" in state "${ctx.session.state}"`);
   } catch (error) {
     global.app.logger.error("❌ Profile management error:", error);
     await ctx.reply(t("error_generic", langCode), {
@@ -166,7 +166,7 @@ async function showManageBooks(ctx) {
     
     // Update state
     ctx.session.state = "manage_books";
-    global.app.logger.debug("ProfileManager: Updated state to manage_books");
+    global.app.logger.info("ProfileManager: Updated state to manage_books");
   } catch (error) {
     global.app.logger.error("❌ Show manage books error:", error);
     await ctx.reply(t("error_generic", langCode), {
@@ -209,7 +209,7 @@ async function initiateBookDeletion(ctx, text) {
       }
     );
     
-    global.app.logger.debug(`ProfileManager: Updated state to confirm_delete_book for book index ${bookIndex}`);
+    global.app.logger.info(`ProfileManager: Updated state to confirm_delete_book for book index ${bookIndex}`);
   } catch (error) {
     global.app.logger.error("❌ Initiate deletion error:", error);
     await ctx.reply(t("error_generic", langCode));
@@ -294,7 +294,7 @@ async function showProfile(ctx) {
     message += t("profile_select_option", langCode);
     
     const keyboard = getProfileMenuKeyboard(user, langCode);
-    global.app.logger.debug("Profile keyboard buttons:", keyboard);
+    global.app.logger.info("Profile keyboard buttons:", keyboard);
     
     await ctx.reply(message, {
       reply_markup: keyboard
@@ -302,7 +302,7 @@ async function showProfile(ctx) {
     
     // Update state
     ctx.session.state = "profile_menu";
-    global.app.logger.debug("ProfileManager: Updated state to profile_menu");
+    global.app.logger.info("ProfileManager: Updated state to profile_menu");
   } catch (error) {
     global.app.logger.error("❌ Show profile error:", error);
     await ctx.reply(t("error_generic", langCode), {

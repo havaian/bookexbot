@@ -6,6 +6,11 @@ import { cacheService } from "../services/cache.js";
 import { getBrowseKeyboard, getMainKeyboard } from "../utils/keyboard.js";
 import { t, formatCondition } from "../utils/localization.js";
 
+let botInstance = null;
+export const setBotInstance = (bot) => {
+  botInstance = bot;
+};
+
 // Store the current user being viewed in the session
 const storeCurrentBrowseUser = (ctx, user) => {
   ctx.session.browsing = {
@@ -25,7 +30,7 @@ export const resetBrowsingState = async (ctx) => {
       reply_markup: getMainKeyboard(langCode)
     });
     
-    global.app.logger.debug(`Reset browsing state for user ${ctx.from?.id}`);
+    global.app.logger.info(`Reset browsing state for user ${ctx.from?.id}`);
   } catch (error) {
     global.app.logger.error("Error resetting browsing state:", error);
   }
@@ -44,7 +49,7 @@ async function findNextUser(currentUserId) {
     });
     const skippedUserIds = skips.map((skip) => skip.toUser);
     
-    global.app.logger.debug("Finding next user:", {
+    global.app.logger.info("Finding next user:", {
       currentUserId,
       likedUserIds: likedUserIds.length,
       skippedUserIds: skippedUserIds.length
@@ -62,17 +67,17 @@ async function findNextUser(currentUserId) {
       }
     };
 
-    global.app.logger.debug("Aggregate query:", JSON.stringify(query));
+    global.app.logger.info("Aggregate query:", JSON.stringify(query));
 
     const users = await User.aggregate([
       query,
       { $sample: { size: 1 } }
     ]);
 
-    global.app.logger.debug("Found users:", users.length);
+    global.app.logger.info("Found users:", users.length);
 
     if (!users || users.length === 0) {
-      global.app.logger.debug("No users found");
+      global.app.logger.info("No users found");
       return null;
     }
     
@@ -116,7 +121,7 @@ async function showUserBooks(ctx, user) {
       reply_markup: getBrowseKeyboard(langCode)
     });
     
-    global.app.logger.debug(`Showing books for user ${user.telegramId} to user ${ctx.from.id}`);
+    global.app.logger.info(`Showing books for user ${user.telegramId} to user ${ctx.from.id}`);
   } catch (error) {
     const langCode = ctx.session?.language;
     global.app.logger.error("❌ Error showing books:", error);
@@ -165,12 +170,6 @@ async function notifyUserAboutMatch(bot, userId, otherUser) {
   }
 }
 
-// Set a reference to the bot instance
-let botInstance = null;
-export const setBotInstance = (bot) => {
-  botInstance = bot;
-};
-
 export const handleBrowse = async (ctx) => {
   try {
     const langCode = ctx.session?.language;
@@ -179,7 +178,7 @@ export const handleBrowse = async (ctx) => {
     ctx.session.browsing = { currentUserId: null };
     ctx.session.state = "idle"; // Start with idle and only set to browsing when showing books
     
-    global.app.logger.debug(`Browse command started for user ${ctx.from.id}`);
+    global.app.logger.info(`Browse command started for user ${ctx.from.id}`);
     
     const currentUser = await User.findOne({ telegramId: ctx.from.id });
     if (!currentUser) {
@@ -206,7 +205,7 @@ export const handleBrowse = async (ctx) => {
     // Show the books
     await showUserBooks(ctx, nextUser);
     
-    global.app.logger.debug(`Browse command completed for user ${ctx.from.id}`);
+    global.app.logger.info(`Browse command completed for user ${ctx.from.id}`);
   } catch (error) {
     const langCode = ctx.session?.language;
     global.app.logger.error("❌ Browse command error:", error);
@@ -227,7 +226,7 @@ export const handleBrowseAction = async (ctx) => {
     const langCode = ctx.session?.language;
     const action = ctx.message.text.startsWith(t("browse_like", langCode).substring(0, 2)) ? "like" : "skip";
 
-    global.app.logger.debug(`Browse action started: ${action} by user ${ctx.from.id}`);
+    global.app.logger.info(`Browse action started: ${action} by user ${ctx.from.id}`);
 
     // Get the current user being viewed from session
     if (!ctx.session.browsing || !ctx.session.browsing.currentUserId) {
@@ -252,7 +251,7 @@ export const handleBrowseAction = async (ctx) => {
     }
     
     const targetUserId = ctx.session.browsing.currentUserId;
-    global.app.logger.debug(`User ${ctx.from.id} ${action}d user ${targetUserId}`);
+    global.app.logger.info(`User ${ctx.from.id} ${action}d user ${targetUserId}`);
 
     // Store the current state before processing to avoid race conditions
     const currentBrowsing = { ...ctx.session.browsing };
@@ -293,7 +292,7 @@ export const handleBrowseAction = async (ctx) => {
           action: "like"
         });
 
-        global.app.logger.debug(`Mutual like check: ${mutualLike ? 'Match found!' : 'No match yet'}`);
+        global.app.logger.info(`Mutual like check: ${mutualLike ? 'Match found!' : 'No match yet'}`);
 
         if (mutualLike) {
           // Check if match already exists
@@ -345,11 +344,11 @@ export const handleBrowseAction = async (ctx) => {
               global.app.logger.error("Error creating match:", error);
             }
           } else {
-            global.app.logger.debug(`Match already exists between users ${ctx.from.id} and ${targetUserId}`);
+            global.app.logger.info(`Match already exists between users ${ctx.from.id} and ${targetUserId}`);
           }
         }
       } else {
-        global.app.logger.debug(`User ${ctx.from.id} already liked user ${targetUserId}`);
+        global.app.logger.info(`User ${ctx.from.id} already liked user ${targetUserId}`);
       }
     } else if (action === "skip") {
       // Store skip permanently in database 

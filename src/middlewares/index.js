@@ -14,7 +14,7 @@ export const stateHandler = async (ctx, next) => {
     console.log(ctx);
 
     // Always log the current state for debugging
-    global.app.logger.debug(`Processing message in state: ${ctx.session?.state}, step: ${ctx.session?.step}`);
+    global.app.logger.info(`Processing message in state: ${ctx.session?.state}, step: ${ctx.session?.step}`);
     
     // First process any keyboard input
     await handleKeyboardInput(ctx, async () => {
