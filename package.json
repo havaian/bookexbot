@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Telegram bot for book exchanges",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
@@ -13,7 +14,6 @@
   },
   "keywords": [],
   "author": "havaian",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/havaian/bookexbot/issues"
   },
