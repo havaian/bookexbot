@@ -110,10 +110,11 @@ const translations = {
     browse_session_expired: "Session expired. Please start browsing again.",
 
     browse_user_header: "Books from %s:",
+    browse_book_item: "📚 Book %d:\nTitle: %s\nAuthor: %s\nCondition: %s",
     browse_question: "What do you think of these books?",
-    browse_error: "Sorry, there was an error displaying these books. Use the Browse button to try again.",
-    browse_error_next: "Sorry, there was an error finding the next user.",
-    match_no_username: "this user (they don't have a username)",
+    contact_no_username: "this user (they don't have a username)",
+    match_notification_all_books: "It's a match! 🎉\n\nYou and %s both liked each other's books!\n\n%s\nYou can contact %s directly through Telegram to arrange your book exchange.",
+    match_notification_other_all_books: "🎉 Book Match! 🎉\n\nYou've matched with %s!\n\nThey like your books and you like their books:\n\n%s\nYou can now contact %s directly through Telegram to arrange your book exchange.",
 
     match_notification:
       "It's a match! 🎉\n\nYou and %s both liked each other's books!\n\nYou can contact %s directly through Telegram to arrange your book exchange.",
@@ -234,10 +235,11 @@ const translations = {
       "Сессия истекла. Пожалуйста, начните просмотр снова.",
 
     browse_user_header: "Книги от %s:",
+    browse_book_item: "📚 Книга %d:\nНазвание: %s\nАвтор: %s\nСостояние: %s",
     browse_question: "Что вы думаете об этих книгах?",
-    browse_error: "Извините, произошла ошибка при отображении этих книг. Используйте кнопку Искать книги, чтобы попробовать снова.",
-    browse_error_next: "Извините, произошла ошибка при поиске следующего пользователя.",
-    match_no_username: "этот пользователь (у него нет имени пользователя)",
+    contact_no_username: "этот пользователь (у него нет имени пользователя)",
+    match_notification_all_books: "Совпадение! 🎉\n\nВы и %s оба понравились книги друг друга!\n\n%s\nВы можете связаться с %s напрямую через Telegram, чтобы договориться об обмене книгами.",
+    match_notification_other_all_books: "🎉 Совпадение по книге! 🎉\n\nУ вас совпадение с %s!\n\nИм нравятся ваши книги, а вам нравятся их книги:\n\n%s\nТеперь вы можете связаться с %s напрямую через Telegram, чтобы договориться об обмене книгами.",
 
     match_notification:
       "Совпадение! 🎉\n\nВы и %s оба понравились книги друг друга!\n\nВы можете связаться с %s напрямую через Telegram, чтобы договориться об обмене книгами.",

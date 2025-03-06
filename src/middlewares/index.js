@@ -10,13 +10,15 @@ import { t } from '../utils/localization.js';
 
 export const stateHandler = async (ctx, next) => {
   try {
-    // Get user's language preference from session
-    const langCode = ctx.session?.language;
+    // Always log the current state for debugging
+    global.app.logger.debug(`Processing message in state: ${ctx.session?.state}, step: ${ctx.session?.step}`);
     
     // First process any keyboard input
     await handleKeyboardInput(ctx, async () => {
       if (ctx.message?.text) {
-        switch (ctx.session?.state) {
+        const currentState = ctx.session?.state || 'idle';
+        
+        switch (currentState) {
           case 'initial_language_selection':
             await handleInitialLanguageSelection(ctx);
             break;
@@ -34,6 +36,14 @@ export const stateHandler = async (ctx, next) => {
           case 'confirm_delete_book':
             await handleProfileManagement(ctx);
             break;
+          case 'browsing':
+            // Make sure browsing state handles text inputs properly
+            if (ctx.message.text.startsWith('👍') || ctx.message.text.startsWith('👎')) {
+              await handleBrowseAction(ctx);
+            } else {
+              await next();
+            }
+            break;
           default:
             await next();
         }
@@ -49,11 +59,14 @@ export const stateHandler = async (ctx, next) => {
       language: ctx.session?.language
     });
     
-    // Reset session on error
+    // Always reset session on error to prevent getting stuck
     if (ctx.session) {
       ctx.session.state = 'idle';
       ctx.session.step = 0;
       ctx.session.tempData = {};
+      if (ctx.session.browsing) {
+        ctx.session.browsing = { currentUserId: null };
+      }
     }
 
     await ctx.reply(t('error_generic', ctx.session?.language), {

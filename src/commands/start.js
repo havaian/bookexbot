@@ -15,8 +15,6 @@ export const handleStart = async (ctx) => {
       user = await User.create({
         telegramId: from.id,
         username: from.username,
-        firstName: from.first_name,
-        lastName: from.last_name,
         language: DEFAULT_LANGUAGE
       });
 

@@ -12,8 +12,6 @@ const bookSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   telegramId: { type: Number, required: true, unique: true },
   username: String,
-  firstName: String,
-  lastName: String,
   books: [bookSchema],
   status: { type: String, enum: ["active", "inactive"], default: "active" },
   language: { type: String },

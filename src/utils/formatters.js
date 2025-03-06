@@ -15,7 +15,7 @@ export const formatProfile = (user, langCode) => {
   const statusEmoji = user.status === "active" ? "🟢" : "🔴";
   let message = `${t("profile_details", langCode)}\n`;
   
-  message += t("profile_name", langCode, `${user.firstName} ${user.lastName || ""}`);
+  message += t("profile_name", langCode);
   message += `\n${t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`, langCode))}\n\n`;
   
   // Check if user has books
@@ -40,22 +40,6 @@ export const formatProfile = (user, langCode) => {
   message += t("profile_select_option", langCode);
   
   return message;
-};
-
-// Format match details with language support
-export const formatMatch = (match, otherUser, index = null, langCode) => {
-  const header = index !== null ? `Match #${index + 1}:` : "Match:";
-  const books = otherUser.books
-    .map((book) => `- ${book.title} by ${book.author}`)
-    .join("\n");
-
-  return [
-    header,
-    `User: ${otherUser.firstName} ${otherUser.lastName || ""}`,
-    `Books:\n${books}`,
-    `Contact: @${otherUser.username || "[no username]"}`,
-    `------------------`,
-  ].join("\n");
 };
 
 // Format help message with language support

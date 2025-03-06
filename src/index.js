@@ -8,8 +8,9 @@ import { Bot, session } from "grammy";
 import { commandHandler } from "./commands/index.js";
 import { stateHandler } from "./middlewares/index.js";
 import { rateLimit } from "./middlewares/rateLimit.js";
+import { DEFAULT_LANGUAGE } from "./utils/localization.js";
 import { User } from "./models/user.js";
-import * as browse from "./commands/browse.js"
+import { setBotInstance, checkBrowsingTimeout  } from "./commands/browse.js";
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -19,7 +20,8 @@ bot.use(session({
     state: "idle",
     step: 0,
     tempData: {},
-    browsing: { currentUserId: null }
+    browsing: { currentUserId: null },
+    language: DEFAULT_LANGUAGE // Default language
   }),
   getSessionKey: (ctx) => {
     // Return a unique identifier for the session
@@ -47,6 +49,9 @@ bot.use(async (ctx, next) => {
   return next();
 });
 
+// Browsing timeout checking function
+bot.use(checkBrowsingTimeout);
+
 // Now you can safely use global.app
 global.app.db.connect(process.env.MONGODB_URI);
 
@@ -66,5 +71,5 @@ bot.start({
   },
 });
 
-// Pass bot instance
-browse.setBotInstance(bot);
+// Share bot instance with the browse module for notifications
+setBotInstance(bot);

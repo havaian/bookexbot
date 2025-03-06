@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 const likeSchema = new mongoose.Schema({
   fromUser: { type: Number, required: true }, // telegram_id
   toUser: { type: Number, required: true }, // telegram_id
-  action: { type: String, enum: ["like", "skip"], default: "like" }, // Distinguish between likes and skips
+  isSkip: { type: Boolean, default: false }, // Flag to mark skips
   createdAt: { type: Date, default: Date.now },
 });
 
-// Index for quick lookups (changed to allow both like and skip actions for the same pair)
-likeSchema.index({ fromUser: 1, toUser: 1, action: 1 }, { unique: true });
+// Keep the same index structure for backward compatibility
+likeSchema.index({ fromUser: 1, toUser: 1 });
 
 export const Like = mongoose.model("Like", likeSchema);
