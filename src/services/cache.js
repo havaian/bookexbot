@@ -86,7 +86,23 @@ class CacheService {
 
   // Stats and monitoring
   getStats() {
-    return this.cache.getStats();
+    try {
+      if (this.cache && typeof this.cache.getStats === 'function') {
+        return this.cache.getStats();
+      } else {
+        // Return a simplified stats object if the method is not available
+        return {
+          keys: Object.keys(this.cache.data || {}).length || 0,
+          hits: 0,
+          misses: 0,
+          ksize: 0,
+          vsize: 0,
+        };
+      }
+    } catch (error) {
+      // Return empty stats on error to prevent crashes
+      return { error: 'Failed to get cache stats', keys: 0 };
+    }
   }
 }
 

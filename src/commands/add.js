@@ -78,31 +78,52 @@ export const handleAddBookStep = async (ctx) => {
         );
         break;
 
-      case 3: // Book condition
-        const condition = message.text.toLowerCase();
+        case 3: // Book condition
+        // Extract the condition value from the message text
+        const messageText = message.text.toLowerCase();
+        let condition = '';
+        
+        // Check for emoji condition buttons and map to standard values
+        if (messageText.includes(t("condition_new", langCode).toLowerCase())) {
+          condition = 'new';
+        } else if (messageText.includes(t("condition_good", langCode).toLowerCase())) {
+          condition = 'good';
+        } else if (messageText.includes(t("condition_fair", langCode).toLowerCase())) {
+          condition = 'fair';
+        } else if (messageText.includes(t("condition_poor", langCode).toLowerCase())) {
+          condition = 'poor';
+        } else {
+          // Direct text input without emoji (fallback)
+          condition = messageText;
+        }
+        
+        // Validate the condition
         if (!["new", "good", "fair", "poor"].includes(condition)) {
+          global.app.logger.warn(`Invalid condition: ${condition} from text: ${message.text}`);
           await ctx.reply(t("error_invalid_input", langCode), {
             reply_markup: getConditionKeyboard(langCode)
           });
           return;
         }
-
+      
+        // Store the normalized condition
         ctx.session.tempData.currentBook.condition = condition;
-
+        global.app.logger.info(`Condition set to: ${condition} from text: ${message.text}`);
+      
         // Save book to user's profile
         const user = await User.findOne({ telegramId: ctx.from.id });
         if (!user) {
           throw new Error("User not found");
         }
-
+      
         user.books.push(ctx.session.tempData.currentBook);
         await user.save();
-
+      
         // Reset session
         ctx.session.state = "idle";
         ctx.session.step = 0;
         ctx.session.tempData = {};
-
+      
         await ctx.reply(
           t("book_add_success", langCode),
           {

@@ -47,8 +47,29 @@ export const handleRegistrationStep = async (ctx) => {
         );
         break;
 
-      case 3: // Book condition
-        const condition = message.text.toLowerCase();
+        case 3: // Book condition
+        // Extract the condition value from the message text
+        const messageText = message.text.toLowerCase();
+        let condition = '';
+        
+        // Check for emoji condition buttons and map to standard values
+        if (messageText.includes(t("condition_new", langCode).toLowerCase())) {
+          condition = 'new';
+        } else if (messageText.includes(t("condition_good", langCode).toLowerCase())) {
+          condition = 'good';
+        } else if (messageText.includes(t("condition_fair", langCode).toLowerCase())) {
+          condition = 'fair';
+        } else if (messageText.includes(t("condition_poor", langCode).toLowerCase())) {
+          condition = 'poor';
+        } else {
+          // Direct text input without emoji (fallback)
+          condition = messageText;
+        }
+        
+        // Log the condition extraction for debugging
+        global.app.logger.info(`Registration: Condition text "${message.text}" mapped to "${condition}"`);
+        
+        // Validate the condition
         if (!["new", "good", "fair", "poor"].includes(condition)) {
           await ctx.reply(
             t("error_invalid_input", langCode),
@@ -58,17 +79,18 @@ export const handleRegistrationStep = async (ctx) => {
           );
           return;
         }
+        
         ctx.session.tempData.currentBook.condition = condition;
-
+      
         // Save book to user's profile
         const user = await User.findOne({ telegramId: ctx.from.id });
         if (!user) {
           throw new Error("User not found");
         }
-
+      
         user.books.push(ctx.session.tempData.currentBook);
         await user.save();
-
+      
         // Check if user wants to add another book
         if (user.books.length < 3) {
           await ctx.reply(

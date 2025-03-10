@@ -69,7 +69,19 @@ bot.start({
     global.app.logger.info(`✅ Bot started at: ${new Date().toISOString()}`);
     // Log cache stats every hour
     setInterval(() => {
-      global.app.logger.info("✅ Cache stats:", global.app.cache.getStats());
+      try {
+        if (global.app && global.app.cache && typeof global.app.cache.getStats === 'function') {
+          global.app.logger.info("✅ Cache stats:", global.app.cache.getStats());
+        } else {
+          global.app.logger.info("✅ Cache stats: Not available");
+        }
+      } catch (error) {
+        // Log the error but don't let it crash the application
+        console.error("Error getting cache stats:", error);
+        if (global.app && global.app.logger) {
+          global.app.logger.error("Error getting cache stats:", error);
+        }
+      }
     }, 3600000);
   },
 });
