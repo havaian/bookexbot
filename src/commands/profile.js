@@ -16,9 +16,7 @@ export const handleProfile = async (ctx) => {
 
     // Basic profile display
     const statusEmoji = user.status === "active" ? "🟢" : "🔴";
-    let message = `${t("profile_details", langCode)}\n` +
-      `${t("profile_name", langCode)}\n` +
-      `${t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`, langCode))}\n\n`;
+    let message = `${t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`, langCode))}\n\n`;
     
     // Check if user has books
     if (!user.books || user.books.length === 0) {

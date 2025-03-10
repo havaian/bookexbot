@@ -13,10 +13,7 @@ export const formatBook = (book, index = null, langCode) => {
 // Format user profile with language support
 export const formatProfile = (user, langCode) => {
   const statusEmoji = user.status === "active" ? "🟢" : "🔴";
-  let message = `${t("profile_details", langCode)}\n`;
-  
-  message += t("profile_name", langCode);
-  message += `\n${t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`, langCode))}\n\n`;
+  let message = `\n${t("profile_status", langCode, statusEmoji, t(`status_${user.status}_message`, langCode))}\n\n`;
   
   // Check if user has books
   if (!user.books || user.books.length === 0) {

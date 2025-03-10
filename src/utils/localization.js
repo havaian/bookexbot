@@ -76,8 +76,6 @@ const translations = {
     registration_complete:
       "Perfect! Your profile is all set up. 🎉\n\nUse the menu below to navigate:",
 
-    profile_details: "Profile Details:",
-    profile_name: "Name: %s",
     profile_status: "Status: %s %s",
     profile_no_books:
       "You don't have any books yet! Add books to start exchanging.",
@@ -200,8 +198,6 @@ const translations = {
     registration_complete:
       "Отлично! Ваш профиль настроен. 🎉\n\nИспользуйте меню ниже для навигации:",
 
-    profile_details: "Данные профиля:",
-    profile_name: "Имя: %s",
     profile_status: "Статус: %s %s",
     profile_no_books: "У вас еще нет книг! Добавьте книги, чтобы начать обмен.",
     profile_books_header: "Ваши книги:",

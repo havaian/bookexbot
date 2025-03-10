@@ -68,8 +68,68 @@ export const handleKeyboardInput = async (ctx, next) => {
   const text = ctx.message.text;
   const langCode = ctx.session?.language || DEFAULT_LANGUAGE;
   
-  // Log all inputs for debugging
   global.app.logger.info(`Processing text: "${text}", Language in session: ${langCode}`);
+  
+  // First check if this is any kind of "back" button across all languages
+  const isBackButton = (text) => {
+    // Check in all available languages
+    for (const lang of Object.keys(AVAILABLE_LANGUAGES)) {
+      // Check for all possible back button variants
+      const backVariants = [
+        t("back_to_main", lang),
+        t("back_to_profile", lang),
+        t("cancel", lang),
+        t("cancel_registration", lang),
+        "🔙 Back / Назад"  // Special case for language selection
+      ];
+      
+      if (backVariants.includes(text)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  
+  // Handle any button press when context is lost or invalid
+  if (ctx.session.state === "idle" || !ctx.session.state) {
+    if (isBackButton(text) || 
+        text.includes("Back to Main") || 
+        text.includes("Вернуться в меню")) {
+      
+      global.app.logger.info(`Restoring main menu for user with lost context: "${text}"`);
+      
+      // Check if user is registered
+      try {
+        const user = await User.findOne({ telegramId: ctx.from.id });
+        if (user) {
+          // User is registered, show main menu
+          ctx.session.state = "idle";
+          ctx.session.step = 0;
+          ctx.session.tempData = {};
+          ctx.session.language = user.language || DEFAULT_LANGUAGE;
+          
+          if (ctx.session.browsing) {
+            ctx.session.browsing = { currentUserId: null };
+          }
+          
+          await ctx.reply(t("main_menu", ctx.session.language), { 
+            reply_markup: getMainKeyboard(ctx.session.language) 
+          });
+          return; // Stop processing
+        } else {
+          // User is not registered, restart registration
+          return await handleStart(ctx);
+        }
+      } catch (error) {
+        global.app.logger.error("Error checking user registration:", error);
+        // If DB error, still try to show main menu with default language
+        await ctx.reply(t("main_menu", DEFAULT_LANGUAGE), { 
+          reply_markup: getMainKeyboard(DEFAULT_LANGUAGE) 
+        });
+        return;
+      }
+    }
+  }
   
   // Check if this is a Russian button but session is in English or vice versa
   const isRussianButton = text.match(/[а-яА-Я]/) !== null;

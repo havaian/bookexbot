@@ -12,29 +12,21 @@ services:
       - "127.0.0.1:${MONGODB_EXPOSE}:${MONGODB_PORT}"
     volumes:
       - mongodb_data:/data/db
-    networks:
-      - book_exchange_network
+    network_mode: host
 
   bot:
     build: .
     container_name: book_exchange_bot
     restart: unless-stopped
-    environment:
-      MONGODB_URI: mongodb://mongodb:${MONGODB_PORT}/${MONGODB_DBNAME}
-      BOT_TOKEN: ${BOT_TOKEN}
+    env_file:
+      - ./.env
     depends_on:
       - mongodb
     volumes:
       - ./src:/app/src
       - ./node_modules:/app/node_modules
-    networks:
-      - book_exchange_network
+    network_mode: host
 
 volumes:
   mongodb_data:
     name: book_exchange_mongodb_data
-
-networks:
-  book_exchange_network:
-    name: book_exchange_network
-    driver: bridge

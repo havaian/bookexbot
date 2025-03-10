@@ -266,9 +266,7 @@ async function showProfile(ctx) {
     
     // Basic profile display
     const statusEmoji = user.status === "active" ? "🟢" : "🔴";
-    let message = `${t("profile_details", langCode)}\n`;
-    message += t("profile_name", langCode);
-    message += `\n${t("profile_status", langCode, statusEmoji, t(`status_${user.status}`, langCode))}\n\n`;
+    let message = `\n${t("profile_status", langCode, statusEmoji, t(`status_${user.status}`, langCode))}\n\n`;
     
     // Check if user has books
     if (!user.books || user.books.length === 0) {
