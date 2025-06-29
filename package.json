@@ -1,0 +1,29 @@
+{
+  "name": "book-exchange-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for book exchanges",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/havaian/bookexbot.git"
+  },
+  "keywords": [],
+  "author": "havaian",
+  "bugs": {
+    "url": "https://github.com/havaian/bookexbot/issues"
+  },
+  "homepage": "https://github.com/havaian/bookexbot#readme",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "grammy": "^1.34.1",
+    "mongoose": "^8.10.0",
+    "node-cache": "^5.1.2",
+    "nodemon": "^3.1.9",
+    "winston": "^3.17.0"
+  }
+}
